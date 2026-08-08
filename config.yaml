@@ -1,0 +1,8 @@
+data:
+  raw_path: "data/raw_books.csv"
+  clean_path: "data/clean_books.csv"
+  features_path: "data/features.csv"
+  target: "price"
+
+model:
+  output_path: "models/best_model.pkl"

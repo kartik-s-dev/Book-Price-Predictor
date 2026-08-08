@@ -1,20 +1,26 @@
 import subprocess
 import sys
+import logging
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logger = logging.getLogger(__name__)
 
 def run_pipeline():
     scripts = [
         "02_clean.py",
-        "03_features.py",
-        "04_train_baseline.py",
-        "05_train_advanced.py",
-        "06_visualize.py"
+        "09_advanced_features.py",
+        "10_train_advanced_cv.py",
+        "11_explainability.py"
     ]
     
-    print("=== STARTING BOOK PRICE PREDICTOR PIPELINE ===")
+    logger.info("=== STARTING ADVANCED BOOK PRICE PREDICTOR PIPELINE ===")
     for script in scripts:
-        print(f"\n--- Running {script} ---")
+        logger.info(f"Running {script}...")
         subprocess.run([sys.executable, script], check=True)
-    print("\n=== PIPELINE EXECUTED SUCCESSFULLY ===")
+    
+    logger.info("Running pytest suite...")
+    subprocess.run([sys.executable, "-m", "pytest"], check=True)
+    logger.info("=== PIPELINE & TESTS EXECUTED SUCCESSFULLY ===")
 
 if __name__ == "__main__":
     run_pipeline()
