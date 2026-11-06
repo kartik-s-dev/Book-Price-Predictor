@@ -1,0 +1,16 @@
+{
+  "n_rows": 6237,
+  "cv": "GroupKFold(5) grouped by Title",
+  "baseline_median": {
+    "r2_log_mean": -0.008826263463911799,
+    "r2_log_std": 0.005562486221510165,
+    "mae_rupees_mean": 317.44894832469726,
+    "mae_rupees_std": 8.909106247073275
+  },
+  "lightgbm": {
+    "r2_log_mean": 0.4911828587638357,
+    "r2_log_std": 0.0233651448533623,
+    "mae_rupees_mean": 243.31306183356432,
+    "mae_rupees_std": 6.645942422326682
+  }
+}
