@@ -1,5 +1,7 @@
 # Book Price Predictor
 
+[![CI](https://github.com/kartik-s-dev/Book-Price-Predictor/actions/workflows/ci.yml/badge.svg)](https://github.com/kartik-s-dev/Book-Price-Predictor/actions/workflows/ci.yml)
+
 Predicts the price (INR) of a book from its title, author, synopsis, cover type, year, genre, category, rating and number of ratings. Includes a small Streamlit demo.
 
 ## Results (5-fold cross-validation, grouped by Title)
