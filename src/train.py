@@ -88,4 +88,5 @@ def main(data_path, out_model=os.path.join(ROOT, "models", "model.pkl"),
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else r"C:\Projects\book-data\train.xlsx")
+    import train as _self
+    _self.main(sys.argv[1] if len(sys.argv) > 1 else r"C:\Projects\book-data\train.xlsx")

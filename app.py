@@ -1,54 +1,64 @@
-import streamlit as st
+import json
+import os
+import sys
+
 import joblib
+import numpy as np
 import pandas as pd
+import streamlit as st
 
-# Load trained pipeline and dataset features structure
-model = joblib.load("models/best_model.pkl")
-features_df = pd.read_csv("data/features.csv")
+ROOT = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(ROOT, "src"))
+import train  # noqa: F401  (needed so joblib can unpickle Featurizer)
 
-# Get exact numeric feature columns used in training
-target_cols = ["price", "price_log"]
-model_features = [col for col in features_df.select_dtypes(include=["number"]).columns if col not in target_cols]
+MODEL_PATH = os.path.join(ROOT, "models", "model.pkl")
+METRICS_PATH = os.path.join(ROOT, "models", "metrics.json")
 
-st.title("📚 Book Price Predictor — Quick Tester")
+st.set_page_config(page_title="Book Price Predictor")
+st.title("Book Price Predictor")
+st.caption("Trained on the MachineHack/Kaggle 'predict book prices' data (license unknown). Prices in INR.")
 
-# 1. Preset Test Scenarios Dropdown
-presets = {
-    "Custom Input (Manual Type)": {"rating": 3.0, "stock": 20, "title": "A Light in the Attic"},
-    "Test 1: Low Rating vs Minimum Title (Boundary Test)": {"rating": 1.0, "stock": 0, "title": "a"},
-    "Test 2: High Scarcity / Low Stock (Supply-Demand Test)": {"rating": 4.0, "stock": 1, "title": "Data Science Essentials"},
-    "Test 3: High Stock / High Availability": {"rating": 4.0, "stock": 90, "title": "Data Science Essentials"},
-    "Test 4: Long Descriptive Title Impact": {"rating": 3.5, "stock": 15, "title": "The Comprehensive Masterclass Guide to Modern Machine Learning Engineering and MLOps Pipelines"},
-    "Test 5: Top Keywords Impact ('Pilgrim' / 'Guide')": {"rating": 5.0, "stock": 50, "title": "The Ultimate Pilgrim Guide"}
-}
+if not os.path.exists(MODEL_PATH):
+    st.error("Model file not found. Download train.xlsx from Kaggle (anmolkumar/predict-book-prices), "
+             "then run: python src/train.py <path to train.xlsx>")
+    st.stop()
 
-selected_preset = st.selectbox("🎯 Choose a Test Question / Scenario:", list(presets.keys()))
-default_vals = presets[selected_preset]
 
-st.divider()
+@st.cache_resource
+def load_bundle():
+    return joblib.load(MODEL_PATH)
 
-# 2. Dynamic Input Fields (Auto-filled based on selected preset)
-rating = st.slider("Rating", 1.0, 5.0, float(default_vals["rating"]), step=0.5)
-in_stock_qty = st.number_input("In Stock Quantity", min_value=0, max_value=100, value=int(default_vals["stock"]))
-title = st.text_input("Book Title", default_vals["title"])
 
-if st.button("Predict Price", type="primary"):
-    title_length = len(title)
-    title_word_count = len(title.split())
-    
-    # Initialize features
-    input_dict = {col: 0 for col in model_features}
-    
-    if "rating" in input_dict:
-        input_dict["rating"] = rating
-    if "in_stock_qty" in input_dict:
-        input_dict["in_stock_qty"] = in_stock_qty
-    if "title_length" in input_dict:
-        input_dict["title_length"] = title_length
-    if "title_word_count" in input_dict:
-        input_dict["title_word_count"] = title_word_count
-        
-    input_df = pd.DataFrame([input_dict])[model_features]
-    prediction = model.predict(input_df)[0]
-    
-    st.success(f"**Predicted Price:** £{prediction:.2f}")
+bundle = load_bundle()
+cats = bundle["featurizer"].cats
+
+title = st.text_input("Title", "The Prisoner's Gold (The Hunters 3)")
+author = st.text_input("Author", "Chris Kuzneski")
+synopsis = st.text_area("Synopsis", "A fast-paced adventure thriller.")
+c1, c2 = st.columns(2)
+cover = c1.selectbox("Cover", list(cats["cover"]), index=list(cats["cover"]).index("Paperback"))
+year = c2.number_input("Year", 1950, 2026, 2016)
+category = c1.selectbox("Category", list(cats["category"]))
+genre = c2.selectbox("Genre", list(cats["genre"]))
+rating = c1.slider("Rating (out of 5)", 1.0, 5.0, 4.0, 0.1)
+n_ratings = c2.number_input("Number of ratings", 0, 100000, 10)
+
+if st.button("Predict"):
+    row = pd.DataFrame([{
+        "Title": title,
+        "Author": author,
+        "Edition": f"{cover},\u2013 1 Jan {int(year)}",
+        "Reviews": f"{rating} out of 5 stars",
+        "Ratings": f"{int(n_ratings)} customer reviews",
+        "Synopsis": synopsis,
+        "Genre": genre,
+        "BookCategory": category,
+    }])
+    X = bundle["featurizer"].transform(row)[bundle["columns"]]
+    pred = float(np.expm1(bundle["model"].predict(X))[0])
+    st.metric("Estimated price (INR)", f"{pred:,.0f}")
+    if os.path.exists(METRICS_PATH):
+        with open(METRICS_PATH) as f:
+            m = json.load(f)
+        st.caption(f"Typical error: about {m['lightgbm']['mae_rupees_mean']:.0f} INR "
+                   f"(5-fold grouped CV MAE). This is a rough estimate, not an exact price.")
