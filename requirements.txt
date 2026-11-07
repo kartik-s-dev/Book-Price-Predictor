@@ -1,12 +1,8 @@
 pandas
 numpy
 scikit-learn
-matplotlib
-statsmodels
-xgboost
 lightgbm
-optuna
-shap
-streamlit
 joblib
+openpyxl
+streamlit
 pytest
